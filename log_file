@@ -1,3 +1,6 @@
 Greedy algorithm:
+Feasible solution of value 216 [time 2.165]
 
-Feasible solution of value 216 [time 2.183]
+Greedy plus local search:
+Feasible solution of value 209 [time 2.160]
+

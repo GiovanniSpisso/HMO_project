@@ -1,20 +1,22 @@
 import csv
 import os
 
-def write_solution_file(instance_path, solution_id, objective_value, selected_columns):
+def write_solution_file(instance_path, solution_id, objective_value, selected_columns, output_dir="solutions"):
     """
-    Write a .sol file with:
-    - first line: objective value
-    - second line: 0-based selected column indices
+    Write a .sol file in a chosen directory.
     """
+    os.makedirs(output_dir, exist_ok=True)
+
     base = os.path.splitext(os.path.basename(instance_path))[0]
     sol_name = f"{base}.{solution_id}.sol"
 
-    with open(sol_name, "w") as f:
+    full_path = os.path.join(output_dir, sol_name)
+
+    with open(full_path, "w") as f:
         f.write(f"{objective_value}\n")
         f.write(" ".join(map(str, selected_columns)) + "\n")
 
-    return sol_name
+    return full_path
 
 def update_results_csv(csv_path, instance_name, bound, elapsed):
     rows = []

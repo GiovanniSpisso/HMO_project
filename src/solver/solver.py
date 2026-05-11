@@ -24,10 +24,10 @@ def solve_instance(instance_path):
 
     # Placeholder: no real heuristic yet, just a dummy solution that takes all columns
     obj, selected = greedy(m, n, costs, columns)
-
-    write_solution_file(instance_path, solution_count, obj, selected)
-
     elapsed = time.time() - start
+    
+    write_solution_file(instance_path, solution_count, obj, selected, output_dir="solutions/greedy")
+    update_results_csv("solutions/greedy/results.csv", instance_name, obj, elapsed)
+    
+    print("Greedy algorithm:\n")
     print(f"Feasible solution of value {obj} [time {elapsed:.3f}]")
-
-    update_results_csv("results.csv", instance_name, obj, elapsed)

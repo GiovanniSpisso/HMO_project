@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/io/__init__.py
+src/io/parser.py
+src/io/writer.py
+src/scsolver.egg-info/PKG-INFO
+src/scsolver.egg-info/SOURCES.txt
+src/scsolver.egg-info/dependency_links.txt
+src/scsolver.egg-info/requires.txt
+src/scsolver.egg-info/top_level.txt
+src/solver/__init__.py
+src/solver/solution_checker.py
+src/solver/solver.py

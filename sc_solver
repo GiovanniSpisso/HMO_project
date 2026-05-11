@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys
-from solver import solve_instance
+from src.solver.solver import solve_instance
 
 def main():
     if len(sys.argv) != 2:

@@ -2,7 +2,7 @@
 
 This repository contains our solver for the **Heuristics for Mathematical Optimization** project on the Set Covering Problem.
 
-## Repository structure modifica di ELE
+## Repository structure
 
 - `sc_solver`  
   Main executable script. The evaluator runs this file directly.

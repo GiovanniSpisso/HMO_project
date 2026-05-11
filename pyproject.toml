@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scsolver"
+version = "0.1.0"
+description = "Set Covering Problem solver with heuristics and metaheuristics"
+authors = [{ name = "Bellesso" },{ name = "Spisso" },{ name = "Zattra" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

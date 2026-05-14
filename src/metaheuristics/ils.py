@@ -251,15 +251,19 @@ def ils_sa(
         report=False,
     )
 
-    # Current solution (important in SA)
+    # Current solution 
     current_obj = best_obj
     current_selected = best_selected.copy()
-
     temperature = initial_temperature
 
     if report:
         elapsed = time.time() - start_time
         print(f"Feasible solution of value {best_obj} [time {elapsed:.3f}]")
+        if save_solution is not None:
+            try:
+                save_solution(best_obj, best_selected, elapsed)
+            except TypeError:
+                save_solution(best_obj, best_selected)
 
     iteration = 0
 
@@ -274,7 +278,7 @@ def ils_sa(
 
         removed_cost = sum(costs[j] for j in removal_set)
 
-        remaining_objective = current_obj - removed_cost #Differenza
+        remaining_objective = current_obj - removed_cost 
 
 
         obj_repaired, selected_repaired = greedy_from_partial(
@@ -341,7 +345,7 @@ def ils_sa(
                             best_obj,
                             best_selected,
                         )
-                        
+
         # Cooling procedure
         temperature *= cooling_rate
 

@@ -2,9 +2,10 @@
 import os
 import time
 from src.io.parser import parse_instance
-from src.io.writer import write_solution_file, update_results_csv
+from src.io.saver import make_solution_saver
 from src.heuristics.greedy import greedy
-from src.heuristics.construction import greedy_local_search
+from src.algorithms.pipelines import greedy_local_search, greedy_local_search_2opt
+from src.metaheuristics.ils import ils
  
 def solve_instance(instance_path):
     """
@@ -18,28 +19,77 @@ def solve_instance(instance_path):
     m, n, costs, columns = parse_instance(instance_path)
     instance_name = os.path.splitext(os.path.basename(instance_path))[0]
 
-    #best_objective = None
-    #best_columns = None
-    solution_count = 1
-
     #----------------------PURE GREEDY IMPLEMENTATION-------------------------------
+    greedy_saver = make_solution_saver(
+        instance_path,
+        instance_name,
+        "solutions/greedy",
+        "solutions/greedy/results.csv",
+    )
     start = time.time()
-    obj, selected = greedy(m, n, costs, columns)
-    elapsed = time.time() - start
-    
-    write_solution_file(instance_path, solution_count, obj, selected, output_dir="solutions/greedy")
-    update_results_csv("solutions/greedy/results.csv", instance_name, obj, elapsed)
-    
-    print("Greedy algorithm:")
-    print(f"Feasible solution of value {obj} [time {elapsed:.3f}]\n")
+    obj, selected = greedy(
+        m,
+        n,
+        costs,
+        columns,
+        start_time=start,
+        report=True,
+        save_solution=greedy_saver,
+    )
 
     #----------------------GREEDY PLUS LOCAL SEARCH-------------------------------------------------
+    gls_saver = make_solution_saver(
+        instance_path,
+        instance_name,
+        "solutions/greedy_plus_local_search",
+        "solutions/greedy_plus_local_search/results.csv",
+    )
     start = time.time()
-    obj, selected = greedy_local_search(m, n, costs, columns)
-    elapsed = time.time() - start
+    obj, selected = greedy_local_search(
+        m,
+        n,
+        costs,
+        columns,
+        start_time=start,
+        report=True,
+        save_solution=gls_saver,
+    )
 
-    write_solution_file(instance_path, solution_count, obj, selected, output_dir="solutions/greedy_plus_local_search")
-    update_results_csv("solutions/greedy_plus_local_search/results.csv", instance_name, obj, elapsed)
+    #----------------------GREEDY PLUS LOCAL SEARCH 2-OPT-------------------------------------------------
+    gls_2opt_saver = make_solution_saver(
+        instance_path,
+        instance_name,
+        "solutions/greedy_plus_local_search_2opt",
+        "solutions/greedy_plus_local_search_2opt/results.csv",
+    )
+    start = time.time()
+    obj, selected = greedy_local_search_2opt(
+        m,
+        n,
+        costs,
+        columns,
+        start_time=start,
+        report=True,
+        save_solution=gls_2opt_saver,
+    )
 
-    print("Greedy plus local search:")
-    print(f"Feasible solution of value {obj} [time {elapsed:.3f}]\n")
+    #----------------------ILS + HILL CLIMBING-------------------------------------------------
+    ils_saver = make_solution_saver(
+        instance_path,
+        instance_name,
+        "solutions/ils_hill_climbing",
+        "solutions/ils_hill_climbing/results.csv",
+    )
+    start = time.time()
+    obj, selected = ils(
+        m,
+        n,
+        costs,
+        columns,
+        num_remove=5,
+        random_seed=0,
+        max_iter=100,
+        start_time=start,
+        report=True,
+        save_solution=ils_saver,
+    )

@@ -5,7 +5,7 @@ from src.io.parser import parse_instance
 from src.io.saver import make_solution_saver
 from src.heuristics.greedy import greedy
 from src.algorithms.pipelines import greedy_local_search, greedy_local_search_2opt
-from src.metaheuristics.ils import ils
+from src.metaheuristics.ils import ils_hill_climbing, ils_sa
  
 def solve_instance(instance_path):
     """
@@ -74,14 +74,14 @@ def solve_instance(instance_path):
     )
 
     #----------------------ILS + HILL CLIMBING-------------------------------------------------
-    ils_saver = make_solution_saver(
+    ils_hill_climbing_saver = make_solution_saver(
         instance_path,
         instance_name,
         "solutions/ils_hill_climbing",
         "solutions/ils_hill_climbing/results.csv",
     )
     start = time.time()
-    obj, selected = ils(
+    obj, selected = ils_hill_climbing(
         m,
         n,
         costs,
@@ -91,5 +91,29 @@ def solve_instance(instance_path):
         max_iter=100,
         start_time=start,
         report=True,
-        save_solution=ils_saver,
+        save_solution=ils_hill_climbing_saver,
+    )
+
+    #----------------------ILS + SA-------------------------------------------------
+    ils_sa_saver = make_solution_saver(
+        instance_path,
+        instance_name,
+        "solutions/ils_simulated_annealing",
+        "solutions/ils_simulated_annealing/results.csv",
+    )
+    start = time.time()
+    obj, selected = ils_sa(
+        m,
+        n,
+        costs,
+        columns,
+        num_remove=2,
+        random_seed=0,
+        max_iter=1000,
+        initial_temperature=100.0,
+        cooling_rate=0.995,
+        min_temperature=1e-3,
+        start_time=start,
+        report=True,
+        save_solution=ils_sa_saver,
     )

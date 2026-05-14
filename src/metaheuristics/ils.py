@@ -1,5 +1,6 @@
 import random
 import time
+import math
 
 from src.algorithms.pipelines import greedy_local_search
 from src.heuristics.local_search_1opt import local_search_remove
@@ -106,7 +107,7 @@ def greedy_from_partial(
     return objective_value, selected_columns
 
 
-def ils(
+def ils_hill_climbing(
     m,
     n,
     costs,
@@ -211,5 +212,139 @@ def ils(
                         save_solution(best_obj, best_selected, elapsed)
                     except TypeError:
                         save_solution(best_obj, best_selected)
+
+    return best_obj, best_selected
+
+
+def ils_sa(
+    m,
+    n,
+    costs,
+    columns,
+    num_remove=2,
+    random_seed=None,
+    max_iter=1000,
+    initial_temperature=100.0,
+    cooling_rate=0.995,
+    min_temperature=1e-3,
+    start_time=None,
+    report=True,
+    save_solution=None,
+):
+    """
+    Iterated Local Search with Simulated Annealing acceptance criterion.
+    """
+
+    if random_seed is not None:
+        random.seed(random_seed)
+
+    if start_time is None:
+        start_time = time.time()
+
+    # --- INITIAL SOLUTION ---
+    best_obj, best_selected = greedy_local_search(
+        m,
+        n,
+        costs,
+        columns,
+        start_time=start_time,
+        report=False,
+    )
+
+    # Current solution (important in SA)
+    current_obj = best_obj
+    current_selected = best_selected.copy()
+
+    temperature = initial_temperature
+
+    if report:
+        elapsed = time.time() - start_time
+        print(f"Feasible solution of value {best_obj} [time {elapsed:.3f}]")
+
+    iteration = 0
+
+    while (iteration < max_iter and temperature > min_temperature):
+
+        # --- PERTURBATION: Remove N random columns ---
+        removal_set = random_removal(current_selected,num_remove,)
+
+        remaining_selected = set(current_selected) - removal_set
+
+        # --- REPAIR: Greedy construction starting from remaining columns ---
+
+        removed_cost = sum(costs[j] for j in removal_set)
+
+        remaining_objective = current_obj - removed_cost #Differenza
+
+
+        obj_repaired, selected_repaired = greedy_from_partial(
+            m,
+            n,
+            costs,
+            columns,
+            remaining_selected,
+            remaining_objective,
+            start_time=start_time,
+            report=False,
+            save_solution=save_solution,
+        )
+
+        # --- LOCAL SEARCH: Improve the repaired solution ---
+
+        obj_candidate, selected_candidate = local_search_remove(
+            m,
+            costs,
+            columns,
+            selected_repaired,
+            start_time=start_time,
+            report=False,
+            save_solution=save_solution,
+        )
+
+        # --- ACCEPTANCE: Simulated Annealing criterion ---
+        delta = obj_candidate - current_obj
+
+        if delta < 0:
+            accept = True
+
+        else:
+
+            probability = math.exp(-delta / temperature)
+            accept = random.random() < probability
+
+        
+        # Move to new solution if accepted
+        if accept:
+            current_obj = obj_candidate
+            current_selected = selected_candidate.copy()
+
+        # Update best solution
+        if current_obj < best_obj:
+
+            best_obj = current_obj
+            best_selected = current_selected.copy()
+
+            if report:
+                elapsed = time.time() - start_time
+
+                print(f"Feasible solution of value {best_obj} [time {elapsed:.3f}]")
+
+                if save_solution is not None:
+                    try:
+                        save_solution(
+                            best_obj,
+                            best_selected,
+                            elapsed,
+                        )
+                    except TypeError:
+                        save_solution(
+                            best_obj,
+                            best_selected,
+                        )
+                        
+        # Cooling procedure
+        temperature *= cooling_rate
+
+        iteration += 1
 
     return best_obj, best_selected

@@ -1,4 +1,10 @@
-def greedy(m, n, costs, columns):
+import time
+
+
+def greedy(m, n, costs, columns, start_time=None, report=True, save_solution=None):
+
+    if start_time is None:
+        start_time = time.time()
 
     # Ground set uncovered elements
     uncovered = set(range(1, m + 1))
@@ -45,5 +51,16 @@ def greedy(m, n, costs, columns):
 
         # remove selected column
         available_columns.remove(best_col)
+
+    elapsed = time.time() - start_time
+    if report:
+        print(f"Feasible solution of value {objective_value} [time {elapsed:.3f}]")
+
+    if report and save_solution is not None:
+        try:
+            save_solution(objective_value, selected_columns, elapsed)
+        except TypeError:
+            # backward compatibility: accept save_solution(obj, selected)
+            save_solution(objective_value, selected_columns)
 
     return objective_value, selected_columns

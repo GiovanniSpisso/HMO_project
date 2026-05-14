@@ -1,7 +1,5 @@
 venv
-src/scsolver.egg-info
-src/algorithms/__pycache__
-src/heuristics/__pycache__
-src/io/__pycache__
-src/metaheuristics/__pycache__
-src/solver/__pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/

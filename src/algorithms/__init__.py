@@ -1,1 +1,2 @@
-from src.algorithms.pipelines import greedy_local_search, greedy_local_search_2opt
+# Algorithms package with modular components
+# Each algorithm module is self-contained and designed to be part of the larger pipeline

@@ -8,7 +8,7 @@ import math
 import random
 
 
-def accept_simulated_annealing(candidate_obj, current_obj, temperature):
+def accept_simulated_annealing(candidate_obj, current_obj, temperature, min_temperature=1e-6):
     """
     Simulated Annealing acceptance criterion.
     
@@ -20,7 +20,7 @@ def accept_simulated_annealing(candidate_obj, current_obj, temperature):
     - candidate_obj: objective value of the candidate solution
     - current_obj: objective value of the current solution
     - temperature: current temperature (should decrease over time)
-    
+    - min_temperature: minimum temperature threshold (default: 1e-6)
     Returns:
     - True if candidate is accepted, False otherwise
     """
@@ -28,6 +28,8 @@ def accept_simulated_annealing(candidate_obj, current_obj, temperature):
     
     if delta < 0:
         return True
+    elif temperature <= min_temperature:
+        return False
     else:
         probability = math.exp(-delta / temperature)
         return random.random() < probability

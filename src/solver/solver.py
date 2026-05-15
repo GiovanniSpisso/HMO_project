@@ -20,7 +20,8 @@ from src.solver.solution_checker import checker, readInstance, readSolution
 
 
 def solve_instance(instance_path, max_total_time=300, hc_time_limit=120, 
-                  num_remove=5, random_seed=0, consecutive_no_improve=100):
+                  num_remove=5, random_seed=0, consecutive_no_improve=100,
+                  temp_init=100.0, alpha=0.95):
     """
     Comprehensive solver orchestrator for the Set Covering Problem.
     
@@ -39,6 +40,8 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
     - num_remove: number of columns to remove during perturbation
     - random_seed: seed for reproducibility
     - consecutive_no_improve: iterations without improvement to stop HC early
+    - temp_init: initial temperature for Simulated Annealing
+    - alpha: cooling rate for Simulated Annealing
     """
     
     m, n, costs, columns = parse_instance(instance_path)
@@ -57,7 +60,11 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
     # Set random seed once at the start
     if random_seed is not None:
         random.seed(random_seed)
-    
+
+    print("-----------------------------------------------")
+    print("Greedy starting")
+    print("-----------------------------------------------")
+
     # Phase 1: Greedy from scratch
     best_obj, best_selected = greedy_from_scratch(
         m, n, costs, columns,
@@ -66,6 +73,9 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
         save_solution=saver,
     )
     
+    print("-----------------------------------------------")
+    print("Local search starting")
+    print("-----------------------------------------------")
     # Phase 2: Local search (0-opt + 1-opt cycle)
     best_obj, best_selected = local_search(
         m, costs, columns, best_selected,
@@ -74,10 +84,16 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
         save_solution=saver,
     )
     
+    print("-----------------------------------------------")
+    print("Hill climbing starting")
+    print("-----------------------------------------------")
     # Phase 3: ILS loop
     consecutive_no_improve_count = 0
     iteration = 0
-    temperature = 100.0
+    temperature = temp_init
+    in_hc_phase = True
+    temp_min_reach = False
+    min_temperature = 1e-6
     
     while True:
         elapsed = time.time() - global_start
@@ -85,10 +101,6 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
         # Check total time limit
         if elapsed >= max_total_time:
             break
-        
-        # Determine which phase we're in
-        in_hc_phase = (elapsed < hc_time_limit and 
-                      consecutive_no_improve_count < consecutive_no_improve)
         
         # --- PERTURBATION: Remove N random columns ---
         remaining_selected, removal_set = perturb(best_selected, num_remove)
@@ -117,13 +129,29 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
             
             if not accept:
                 consecutive_no_improve_count += 1
+            
+            if (elapsed < hc_time_limit or consecutive_no_improve_count < consecutive_no_improve):
+                in_hc_phase = False
+                if elapsed >= hc_time_limit: 
+                    print("Stopping Hill Climbing phase due to time limit.")
+                else:
+                    print("Stopping Hill Climbing phase due to lack of improvement.")
+                
+                print("-----------------------------------------------")
+                print("Simulated Annealing starting")
+                print("-----------------------------------------------")
+
         else:
             # Simulated Annealing: probabilistic acceptance
-            accept = accept_simulated_annealing(obj_candidate, best_obj, temperature)
-            temperature *= 0.995  # Cool down
+            accept = accept_simulated_annealing(obj_candidate, best_obj, temperature, min_temperature)
+            temperature *= alpha  # Cool down
+            if temperature <= min_temperature and not temp_min_reach:
+                temp_min_reach = True
+                print("Minimum temperature reached in Simulated Annealing.")
+
         
-        # Update best solution if candidate is better
-        if obj_candidate < best_obj:
+        # Update best solution if accept is true
+        if accept:
             best_obj = obj_candidate
             best_selected = selected_candidate
             consecutive_no_improve_count = 0

@@ -15,7 +15,6 @@ from src.algorithms.local_search.local_search import local_search
 from src.algorithms.perturb.perturb import perturb
 from src.algorithms.acceptance_criteria.accept_hc import accept_hill_climbing
 from src.algorithms.acceptance_criteria.accept_sa import accept_simulated_annealing
-from src.algorithms.greedy.greedy import greedy_from_partial
 from src.solver.solution_checker import checker, readInstance, readSolution
 
 
@@ -29,7 +28,7 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
     1. Greedy from scratch
     2. Local search (0-opt + 1-opt cycle) until local minimum
     3. ILS loop:
-       - Perturb: remove N random columns
+         - Perturb: remove random columns, then add random columns until feasibility is restored
        - Local search: apply 0-opt + 1-opt
        - Acceptance: use Hill Climbing if in HC phase, else Simulated Annealing
     
@@ -37,7 +36,7 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
     - instance_path: path to the instance file
     - max_total_time: maximum total time in seconds 
     - hc_time_limit: time limit for Hill Climbing phase in seconds 
-    - num_remove: number of columns to remove during perturbation
+    - num_remove: number of random columns to remove during perturbation
     - random_seed: seed for reproducibility
     - consecutive_no_improve: iterations without improvement to stop HC early
     - temp_init: initial temperature for Simulated Annealing
@@ -103,20 +102,23 @@ def solve_instance(instance_path, max_total_time=300, hc_time_limit=120,
             break
         
         # --- PERTURBATION: Remove N random columns ---
-        remaining_selected, removal_set = perturb(best_selected, num_remove)
-        
+        # remaining_selected, removal_set = perturb(best_selected, num_remove)
+        #
         # --- REPAIR: Greedy construction from remaining columns ---
-        removed_cost = sum(costs[j] for j in removal_set)
-        remaining_objective = best_obj - removed_cost
-        
-        obj_repaired, selected_repaired = greedy_from_partial(
-            m, n, costs, columns, remaining_selected, remaining_objective,
-            start_time=global_start, report=False
-        )
+        # removed_cost = sum(costs[j] for j in removal_set)
+        # remaining_objective = best_obj - removed_cost
+        #
+        # obj_repaired, selected_repaired = greedy_from_partial(
+        #     m, n, costs, columns, remaining_selected, remaining_objective,
+        #     start_time=global_start, report=False
+        # )
+
+        # Active variant: remove N random columns, then add random columns until a feasible solution is reached.
+        selected_perturbed, _ = perturb(best_selected, m, columns, num_remove)
         
         # --- LOCAL SEARCH: Apply 0-opt + 1-opt cycle ---
         obj_candidate, selected_candidate = local_search(
-            m, costs, columns, selected_repaired,
+            m, costs, columns, selected_perturbed,
             start_time=global_start, report=False
         )
         
@@ -203,7 +205,7 @@ def main():
     parser.add_argument("--hc-time", type=int, default=180,
                        help="Time limit for Hill Climbing phase in seconds (default: 180)")
     parser.add_argument("--num-remove", type=int, default=5,
-                       help="Number of columns to remove in ILS perturbation (default: 5)")
+                       help="Number of random columns to remove before feasibility repair (default: 5)")
     parser.add_argument("--random-seed", type=int, default=0,
                        help="Random seed for reproducibility (default: 0)")
     parser.add_argument("--no-improve-limit", type=int, default=100,

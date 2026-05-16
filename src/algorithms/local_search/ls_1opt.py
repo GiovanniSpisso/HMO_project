@@ -1,28 +1,29 @@
 """
 1-opt local search for the Set Covering Problem.
 
-This algorithm tries to replace pairs of columns with better alternatives,
+This algorithm tries to replace one selected column with one alternative,
 STOPPING on the first improvement found.
 """
 
 import time
-from src.algorithms.local_search.ls_utils import build_coverage, remove_column
+from src.algorithms.local_search.ls_utils import build_coverage
 
 
-def local_search_1opt(m, costs, columns, selected_columns, start_time=None, 
-                     report=False, save_solution=None):
+def local_search_1opt(m, costs, columns, selected_columns, start_obj=None,
+                      start_time=None, report=False, save_solution=None):
     """
-    1-opt local search: replace 2 columns, stop on first improvement.
+    1-opt local search: replace 1 selected column with 1 unselected column.
     
-    Tries to improve the solution by replacing pairs of columns. For each
-    column in the solution, tries to find a better replacement. Stops and
-    returns immediately upon finding the first improvement.
+    Tries to improve the solution by replacing a selected column with a single
+    unselected column that keeps the solution feasible and reduces the cost.
+    Stops and returns immediately upon finding the first improvement.
     
     Parameters:
     - m: number of rows
     - costs: list of costs for each column
     - columns: list where columns[j] contains rows covered by column j
     - selected_columns: list of currently selected column indices
+    - start_obj: initial objective of input solution
     - start_time: time reference for elapsed time calculation
     - report: whether to print progress
     - save_solution: optional callback to save the solution
@@ -35,7 +36,10 @@ def local_search_1opt(m, costs, columns, selected_columns, start_time=None,
     
     selected_set = set(selected_columns)
     coverage = build_coverage(m, columns, selected_set)
-    current_cost = sum(costs[j] for j in selected_set)
+    if start_obj is None:
+        current_cost = sum(costs[j] for j in selected_set)
+    else:
+        current_cost = start_obj
     
     improved = True
     
@@ -50,23 +54,6 @@ def local_search_1opt(m, costs, columns, selected_columns, start_time=None,
             for r in columns[j_remove]:
                 if coverage[r] <= 1:
                     uncovered_after_removal.add(r)
-            
-            # If no rows would be uncovered, we can simply remove it
-            if not uncovered_after_removal:
-                remove_column(j_remove, columns, coverage, selected_set)
-                current_cost -= remove_cost
-                improved = True
-                
-                if report:
-                    elapsed = time.time() - start_time
-                    print(f"Feasible solution of value {current_cost} [time {elapsed:.3f}]")
-                    if save_solution is not None:
-                        try:
-                            save_solution(current_cost, sorted(selected_set), elapsed)
-                        except TypeError:
-                            save_solution(current_cost, sorted(selected_set))
-                
-                break  # Stop on first improvement
             
             # Try to find a replacement column that covers all uncovered rows
             best_replacement = None
@@ -84,7 +71,9 @@ def local_search_1opt(m, costs, columns, selected_columns, start_time=None,
             
             # If we found an improvement, apply it and stop
             if best_replacement is not None:
-                remove_column(j_remove, columns, coverage, selected_set)
+                selected_set.remove(j_remove)
+                for r in columns[j_remove]:
+                    coverage[r] -= 1
                 
                 selected_set.add(best_replacement)
                 for r in columns[best_replacement]:

@@ -7,8 +7,8 @@ from src.algorithms.local_search.ls_0opt import local_search_0opt
 from src.algorithms.local_search.ls_1opt import local_search_1opt
 
 
-def local_search(m, costs, columns, selected_columns, start_time=None, 
-                report=False, save_solution=None):
+def local_search(m, costs, columns, selected_columns, 
+                 start_obj=None, start_time=None, report=False, save_solution=None):
     """
     Apply 0-opt + 1-opt cycle until local minimum reached.
     
@@ -21,6 +21,7 @@ def local_search(m, costs, columns, selected_columns, start_time=None,
     - costs: list of costs for each column
     - columns: list where columns[j] contains rows covered by column j
     - selected_columns: list of currently selected column indices
+    - start_obj: initial objective of input solution
     - start_time: time reference for elapsed time calculation
     - report: whether to print progress
     - save_solution: optional callback to save the solution
@@ -30,8 +31,10 @@ def local_search(m, costs, columns, selected_columns, start_time=None,
     """
     if start_time is None:
         start_time = time.time()
-    
-    best_obj = sum(costs[j] for j in selected_columns)
+    if start_obj is None:
+        best_obj = sum(costs[j] for j in selected_columns)
+    else:
+        best_obj = start_obj
     best_selected = list(selected_columns)
     
     improved = True
@@ -42,7 +45,7 @@ def local_search(m, costs, columns, selected_columns, start_time=None,
         # Apply 0-opt
         obj_0opt, selected_0opt = local_search_0opt(
             m, costs, columns, best_selected,
-            start_time=start_time, report=False
+            start_obj=best_obj, start_time=start_time, report=False
         )
         
         if obj_0opt < best_obj:
@@ -67,7 +70,7 @@ def local_search(m, costs, columns, selected_columns, start_time=None,
         # Apply 1-opt
         obj_1opt, selected_1opt = local_search_1opt(
             m, costs, columns, best_selected,
-            start_time=start_time, report=False
+            start_obj=best_obj, start_time=start_time, report=False
         )
         
         if obj_1opt < best_obj:

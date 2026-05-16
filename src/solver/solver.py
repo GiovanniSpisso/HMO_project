@@ -8,21 +8,21 @@ from pathlib import Path
 if __package__ is None or __package__ == "":
     sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-from algorithms.perturb import perturb_random
 from src.io.parser import parse_instance
 from src.io.saver import make_solution_saver
 from src.algorithms.greedy.greedy import greedy_from_partial, greedy_from_scratch
 from src.algorithms.local_search.local_search import local_search
 from src.algorithms.perturb.perturb import perturb
+from src.algorithms.perturb.perturb_random import perturb_random
 from src.algorithms.acceptance_criteria.accept_hc import accept_hill_climbing
 from src.algorithms.acceptance_criteria.accept_sa import accept_simulated_annealing
 from src.solver.solution_checker import checker, readInstance, readSolution
 
 
 def solve_instance(instance_path, max_total_time=300, 
-                   random_seed=0, num_remove=5, 
+                   random_seed=0, perc_remove=0.1, 
                    hc_time_limit=120, consecutive_no_improve=100,
-                   temp_init=100.0, alpha=0.95):
+                   temp_init=100.0, alpha=0.5):
     """
     Comprehensive solver orchestrator for the Set Covering Problem.
     
@@ -38,7 +38,7 @@ def solve_instance(instance_path, max_total_time=300,
     - instance_path: path to the instance file
     - max_total_time: maximum total time in seconds 
     - random_seed: seed for reproducibility
-    - num_remove: number of random columns to remove during perturbation
+    - perc_remove: percentage of random columns to remove during perturbation
     - hc_time_limit: time limit for Hill Climbing phase in seconds 
     - consecutive_no_improve: iterations without improvement to stop HC early
     - temp_init: initial temperature for Simulated Annealing
@@ -84,6 +84,7 @@ def solve_instance(instance_path, max_total_time=300,
     # Phase 2: Local search (0-opt + 1-opt cycle)
     best_obj, best_selected = local_search(
         m, costs, columns, best_selected,
+        start_obj = best_obj,
         start_time=global_start,
         report=True,
         save_solution=saver,
@@ -111,6 +112,7 @@ def solve_instance(instance_path, max_total_time=300,
             break
         
         # --- PERTURBATION: Remove N random columns ---
+        num_remove = int(len(best_selected) * perc_remove / 100)
         remaining_selected, removal_set = perturb(best_selected, num_remove)
         
         # --- REPAIR: Greedy construction from remaining columns ---
@@ -128,7 +130,7 @@ def solve_instance(instance_path, max_total_time=300,
         # --- LOCAL SEARCH: Apply 0-opt + 1-opt cycle ---
         obj_candidate, selected_candidate = local_search(
             m, costs, columns, selected_repaired,
-            start_time=global_start, report=True
+            start_obj = best_obj, start_time=global_start, report=True
         )
         
         # --- ACCEPTANCE: Determine if we accept this solution ---
@@ -155,7 +157,7 @@ def solve_instance(instance_path, max_total_time=300,
                 print("-----------------------------------------------")
                 
                 print("-----------------------------------------------")
-                print(f"Simulated Annealing starting at timee {(time.time() - global_start):.3f} at iteration {iteration}")
+                print(f"Simulated Annealing starting at time {(time.time() - global_start):.3f} at iteration {iteration}")
                 print("-----------------------------------------------")
 
         else:
@@ -164,7 +166,7 @@ def solve_instance(instance_path, max_total_time=300,
             temperature *= alpha  # Cool down
             if temperature <= min_temperature and not temp_min_reach:
                 temp_min_reach = True
-                print(f"Minimum temperature reached in Simulated Annealing at time {time.time()} at iteration {iteration}")
+                print(f"Minimum temperature reached in Simulated Annealing at time {(time.time() - global_start):.3f} at iteration {iteration}")
 
         
         # Update best solution if accept is true ==> current for the moment because we want to print also the negative improvements in this phase of the project
@@ -231,7 +233,7 @@ def main():
         args.instance_path,
         max_total_time=args.max_time,
         hc_time_limit=args.hc_time,
-        num_remove=args.num_remove,
+        perc_remove=args.num_remove,
         random_seed=args.random_seed,
         consecutive_no_improve=args.no_improve_limit,
     )

@@ -13,8 +13,8 @@ from src.algorithms.local_search.ls_utils import (
 )
 
 
-def local_search_0opt(m, costs, columns, selected_columns, start_time=None, 
-                     report=False, save_solution=None):
+def local_search_0opt(m, costs, columns, selected_columns, start_obj=None,
+                      start_time=None, report=False, save_solution=None):
     """
     0-opt local search: remove redundant columns.
     
@@ -27,6 +27,7 @@ def local_search_0opt(m, costs, columns, selected_columns, start_time=None,
     - costs: list of costs for each column
     - columns: list where columns[j] contains rows covered by column j
     - selected_columns: list of currently selected column indices
+    - start_obj: initial objective of input solution
     - start_time: time reference for elapsed time calculation
     - report: whether to print progress
     - save_solution: optional callback to save the solution
@@ -39,7 +40,10 @@ def local_search_0opt(m, costs, columns, selected_columns, start_time=None,
     
     selected_set = set(selected_columns)
     coverage = build_coverage(m, columns, selected_set)
-    current_cost = sum(costs[j] for j in selected_set)
+    if start_obj is None:
+        current_cost = sum(costs[j] for j in selected_set)
+    else:
+        current_cost = start_obj
     
     improved = True
     

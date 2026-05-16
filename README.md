@@ -11,4 +11,4 @@ TO DO
 If needed, make the solver executable:
 
 ```bash
-chmod +x sc_solve
+chmod +x sc_solver

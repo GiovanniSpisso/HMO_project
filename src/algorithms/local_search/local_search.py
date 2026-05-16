@@ -46,6 +46,11 @@ def local_search(m, costs, columns, selected_columns, start_time=None,
         )
         
         if obj_0opt < best_obj:
+
+            print("-----------------------------------------------")
+            print("0-opt improved")
+            print("-----------------------------------------------")
+
             best_obj = obj_0opt
             best_selected = selected_0opt
             improved = True
@@ -66,6 +71,11 @@ def local_search(m, costs, columns, selected_columns, start_time=None,
         )
         
         if obj_1opt < best_obj:
+
+            print("-----------------------------------------------")
+            print("1-opt improved")
+            print("-----------------------------------------------")
+
             best_obj = obj_1opt
             best_selected = selected_1opt
             improved = True
@@ -80,14 +90,5 @@ def local_search(m, costs, columns, selected_columns, start_time=None,
                         save_solution(best_obj, best_selected)
     
     elapsed = time.time() - start_time
-    
-    if report:
-        print(f"Feasible solution of value {best_obj} [time {elapsed:.3f}]")
-    
-    if report and save_solution is not None:
-        try:
-            save_solution(best_obj, best_selected, elapsed)
-        except TypeError:
-            save_solution(best_obj, best_selected)
     
     return best_obj, best_selected

@@ -19,8 +19,8 @@ def accept_simulated_annealing(candidate_obj, current_obj, temperature, min_temp
     Parameters:
     - candidate_obj: objective value of the candidate solution
     - current_obj: objective value of the current solution
-    - temperature: current temperature (should decrease over time)
-    - min_temperature: minimum temperature threshold (default: 1e-6)
+    - temperature: current temperature (decreases over time)
+    - min_temperature: minimum temperature threshold (default: 1e-3)
     Returns:
     - True if candidate is accepted, False otherwise
     """

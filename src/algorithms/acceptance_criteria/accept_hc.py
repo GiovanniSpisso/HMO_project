@@ -9,7 +9,7 @@ def accept_hill_climbing(candidate_obj, best_obj):
     """
     Hill Climbing acceptance criterion.
     
-    Accepts the candidate solution only if it improves (is better than) the best solution.
+    Accepts the candidate solution only if it improves (is better than) the current best solution.
     
     Parameters:
     - candidate_obj: objective value of the candidate solution

@@ -19,9 +19,9 @@ from src.algorithms.acceptance_criteria.accept_sa import accept_simulated_anneal
 from src.solver.solution_checker import checker, readInstance, readSolution
 
 
-def solve_instance(instance_path, max_total_time=600, 
+def solve_instance(instance_path, max_total_time=120, 
                    random_seed=0, perc_remove=10, 
-                   hc_time_limit=600, consecutive_no_improve=1000,
+                   hc_time_limit=60, consecutive_no_improve=1000,
                    temp_init=100.0, alpha=0.5):
     """
     Comprehensive solver orchestrator for the Set Covering Problem.
@@ -130,7 +130,7 @@ def solve_instance(instance_path, max_total_time=600,
         # --- LOCAL SEARCH: Apply 0-opt + 1-opt cycle ---
         obj_candidate, selected_candidate = local_search(
             m, costs, columns, selected_repaired,
-            start_obj = best_obj, start_time=global_start, report=True
+            start_obj = obj_repaired, start_time=global_start, report=True
         )
         
         # --- ACCEPTANCE: Determine if we accept this solution ---

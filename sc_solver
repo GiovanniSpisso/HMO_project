@@ -8,9 +8,9 @@ def main():
         sys.exit(1)
 
     instance_path = sys.argv[1]
-    solve_instance(instance_path)
-    # after solving, validate generated .sol files
-    check_solution_tree()
+    instance_name = solve_instance(instance_path)
+    # After solving, validate only the solutions for this instance.
+    check_solution_tree(instance_name=instance_name)
 
 if __name__ == "__main__":
     main()

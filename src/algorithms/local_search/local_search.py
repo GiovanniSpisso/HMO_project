@@ -1,20 +1,17 @@
 """
-Local search wrapper that applies 0-opt followed by 1-opt cycle.
+Local search wrapper that applies 0-opt.
 """
 
 import time
 from src.algorithms.local_search.ls_0opt import local_search_0opt
-from src.algorithms.local_search.ls_1opt import local_search_1opt
 
 
 def local_search(m, costs, columns, selected_columns, 
                  start_obj=None, start_time=None, report=False, save_solution=None):
     """
-    Apply 0-opt + 1-opt cycle until local minimum reached.
+    Apply 0-opt until local minimum reached.
     
-    First applies 0-opt to remove redundant columns, then applies 1-opt
-    to replace columns for improvements. Continues cycling until no more
-    improvements are found.
+    First applies 0-opt to remove redundant columns.
     
     Parameters:
     - m: number of rows
@@ -56,31 +53,6 @@ def local_search(m, costs, columns, selected_columns,
 
             best_obj = obj_0opt
             best_selected = selected_0opt
-            improved = True
-            
-            if report:
-                elapsed = time.time() - start_time
-                print(f"Feasible solution of value {best_obj} [time {elapsed:.3f}]")
-                if save_solution is not None:
-                    try:
-                        save_solution(best_obj, best_selected, elapsed)
-                    except TypeError:
-                        save_solution(best_obj, best_selected)
-        
-        # Apply 1-opt
-        obj_1opt, selected_1opt = local_search_1opt(
-            m, costs, columns, best_selected,
-            start_obj=best_obj, start_time=start_time, report=False
-        )
-        
-        if obj_1opt < best_obj:
-
-            print("-----------------------------------------------")
-            print("1-opt improved")
-            print("-----------------------------------------------")
-
-            best_obj = obj_1opt
-            best_selected = selected_1opt
             improved = True
             
             if report:

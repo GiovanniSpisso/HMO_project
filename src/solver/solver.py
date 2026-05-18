@@ -13,26 +13,23 @@ from src.io.saver import make_solution_saver
 from src.algorithms.greedy.greedy import greedy_from_partial, greedy_from_scratch
 from src.algorithms.local_search.local_search import local_search
 from src.algorithms.perturb.perturb import perturb
-from src.algorithms.perturb.perturb_random import perturb_random
 from src.algorithms.acceptance_criteria.accept_hc import accept_hill_climbing
-from src.algorithms.acceptance_criteria.accept_sa import accept_simulated_annealing
 from src.solver.solution_checker import checker, readInstance, readSolution
 
 
-def solve_instance(instance_path, max_total_time=600, 
+def solve_instance(instance_path, max_total_time=60, 
                    random_seed=0, perc_remove=10, 
-                   hc_time_limit=600, consecutive_no_improve=1000,
-                   temp_init=100.0, alpha=0.5):
+                   hc_time_limit=60):
     """
     Comprehensive solver orchestrator for the Set Covering Problem.
     
     Performs the following sequence:
     1. Greedy from scratch
-    2. Local search (0-opt + 1-opt cycle) until local minimum
+    2. Local search (0-opt cycle) until local minimum
     3. ILS loop:
          - Perturb: remove random columns, then add random columns until feasibility is restored
-         - Local search (0-opt + 1-opt cycle) until local minimum
-         - Acceptance: use Hill Climbing if in HC phase, else Simulated Annealing
+         - Local search (0-opt cycle) until local minimum
+         - Acceptance: use Hill Climbing
     
     Parameters:
     - instance_path: path to the instance file
@@ -40,9 +37,6 @@ def solve_instance(instance_path, max_total_time=600,
     - random_seed: seed for reproducibility
     - perc_remove: percentage of random columns to remove during perturbation
     - hc_time_limit: time limit for Hill Climbing phase in seconds 
-    - consecutive_no_improve: iterations without improvement to stop HC early
-    - temp_init: initial temperature for Simulated Annealing
-    - alpha: cooling rate for Simulated Annealing
     """
     
     m, n, costs, columns = parse_instance(instance_path)
@@ -81,7 +75,7 @@ def solve_instance(instance_path, max_total_time=600,
     print("-----------------------------------------------")
     print(f"Local search starting at time {(time.time() - global_start):.3f}")
     print("-----------------------------------------------")
-    # Phase 2: Local search (0-opt + 1-opt cycle)
+    # Phase 2: Local search (0-opt cycle)
     best_obj, best_selected = local_search(
         m, costs, columns, best_selected,
         start_obj = best_obj,
@@ -99,10 +93,6 @@ def solve_instance(instance_path, max_total_time=600,
     # Phase 3: ILS loop
     consecutive_no_improve_count = 0
     iteration = 0
-    temperature = temp_init
-    in_hc_phase = True
-    temp_min_reach = False
-    min_temperature = 1e-3
     
     while True:
         elapsed = time.time() - global_start
@@ -124,10 +114,7 @@ def solve_instance(instance_path, max_total_time=600,
             start_time=global_start, report=False
         )
 
-        # Active variant: remove N random columns, then add random columns until a feasible solution is reached.
-        # selected_perturbed, _ = perturb_random(best_selected, m, columns, num_remove)
-        
-        # --- LOCAL SEARCH: Apply 0-opt + 1-opt cycle ---
+        # --- LOCAL SEARCH: Apply 0-opt cycle ---
         obj_candidate, selected_candidate = local_search(
             m, costs, columns, selected_repaired,
             start_obj = obj_repaired, start_time=global_start, report=True
@@ -136,38 +123,19 @@ def solve_instance(instance_path, max_total_time=600,
         # --- ACCEPTANCE: Determine if we accept this solution ---
         accept = False
         
-        if in_hc_phase:
-            # Hill Climbing: accept only if improves best
-            accept = accept_hill_climbing(obj_candidate, best_obj)
-            
-            if not accept:
-                consecutive_no_improve_count += 1
-            else:
-                consecutive_no_improve_count = 0
-            
-            if (elapsed > hc_time_limit or consecutive_no_improve_count > consecutive_no_improve):
-                in_hc_phase = False
-                if elapsed > hc_time_limit: 
-                    print("Stopping Hill Climbing phase due to time limit.")
-                else:
-                    print("Stopping Hill Climbing phase due to lack of improvement.")
-
-                print("-----------------------------------------------")
-                print(f"Hill climbing ending at time {(time.time() - global_start):.3f} with {iteration} number of iterations")
-                print("-----------------------------------------------")
-                
-                print("-----------------------------------------------")
-                print(f"Simulated Annealing starting at time {(time.time() - global_start):.3f} at iteration {iteration}")
-                print("-----------------------------------------------")
-
+        # Hill Climbing: accept only if improves best
+        accept = accept_hill_climbing(obj_candidate, best_obj)
+        
+        if not accept:
+            consecutive_no_improve_count += 1
         else:
-            # Simulated Annealing: probabilistic acceptance
-            accept = accept_simulated_annealing(obj_candidate, best_obj, temperature, min_temperature)
-            temperature *= alpha  # Cool down
-            if temperature <= min_temperature and not temp_min_reach:
-                temp_min_reach = True
-                print(f"Minimum temperature reached in Simulated Annealing at time {(time.time() - global_start):.3f} at iteration {iteration}")
-
+            consecutive_no_improve_count = 0
+        
+        if elapsed > hc_time_limit: 
+            print("Stopping Hill Climbing phase due to time limit.")
+            print("-----------------------------------------------")
+            print(f"Hill climbing ending at time {(time.time() - global_start):.3f} with {iteration} number of iterations")
+            print("-----------------------------------------------")
         
         # Update best solution if accept is true ==> current for the moment because we want to print also the negative improvements in this phase of the project
         if accept:
@@ -179,22 +147,46 @@ def solve_instance(instance_path, max_total_time=600,
             saver(best_obj, best_selected, elapsed)
         
         iteration += 1
+    
+    return instance_name
 
 
-def check_solution_tree(solutions_root="solutions", instances_root="rail/instances"):
-    """Check every .sol file under solutions_root against its matching instance."""
+def check_solution_tree(solutions_root="solutions", instances_root="rail/instances", instance_name=None):
+    """Check .sol files under solutions_root against their matching instances.
+    
+    If instance_name is provided, only check solutions for that specific instance.
+    Otherwise, check all solutions for all instances.
+    """
 
     solutions_root = Path(solutions_root)
     instances_root = Path(instances_root)
     instance_cache = {}
 
-    solution_files = sorted(solutions_root.glob("**/*.sol"))
+    def solution_sort_key(path: Path):
+        parts = path.stem.split(".")
+        base_name = parts[0]
+        if len(parts) > 1 and parts[1].isdigit():
+            return (base_name, 0, int(parts[1]))
+        if len(parts) > 1:
+            return (base_name, 1, parts[1])
+        return (base_name, 2, "")
+
+    solution_files = sorted(solutions_root.glob("**/*.sol"), key=solution_sort_key)
     if not solution_files:
         print(f"No solution files found under {solutions_root}")
         return
+    
+    # Filter solutions by instance_name if provided
+    if instance_name:
+        solution_files = [f for f in solution_files if f.stem.split(".")[0] == instance_name]
+        solution_files = sorted(solution_files, key=solution_sort_key)
+        if not solution_files:
+            print(f"No solution files found for instance {instance_name}")
+            return
 
     for solution_path in solution_files:
-        instance_name = solution_path.stem.split(".")[0]
+        stem_parts = solution_path.stem.split(".")
+        instance_name = stem_parts[0]
         instance_path = instances_root / instance_name
 
         if not instance_path.exists():
@@ -224,9 +216,6 @@ def main():
                        help="Number of random columns to remove before feasibility repair (default: 5)")
     parser.add_argument("--random-seed", type=int, default=0,
                        help="Random seed for reproducibility (default: 0)")
-    parser.add_argument("--no-improve-limit", type=int, default=100,
-                       help="Consecutive iterations without improvement to stop HC (default: 100)")
-    
     args = parser.parse_args()
 
     solve_instance(
@@ -235,9 +224,9 @@ def main():
         hc_time_limit=args.hc_time,
         perc_remove=args.num_remove,
         random_seed=args.random_seed,
-        consecutive_no_improve=args.no_improve_limit,
     )
-    check_solution_tree()
+    instance_name = os.path.splitext(os.path.basename(args.instance_path))[0]
+    check_solution_tree(instance_name=instance_name)
 
 
 if __name__ == "__main__":

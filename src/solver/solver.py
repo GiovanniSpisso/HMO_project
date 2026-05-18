@@ -19,9 +19,9 @@ from src.algorithms.acceptance_criteria.accept_sa import accept_simulated_anneal
 from src.solver.solution_checker import checker, readInstance, readSolution
 
 
-def solve_instance(instance_path, max_total_time=600, 
-                   random_seed=0, perc_remove=10, 
-                   hc_time_limit=600, consecutive_no_improve=1000,
+def solve_instance(instance_path, max_total_time=480, 
+                   random_seed=0, perc_remove=20, 
+                   hc_time_limit=480, consecutive_no_improve=1000,
                    temp_init=100.0, alpha=0.5):
     """
     Comprehensive solver orchestrator for the Set Covering Problem.
